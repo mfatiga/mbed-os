@@ -789,7 +789,7 @@
             },
             "lpticker_delay_ticks": {
                 "help": "https://os.mbed.com/docs/latest/porting/low-power-ticker.html",
-                "value": 1,
+                "value": 3,
                 "macro_name": "LPTICKER_DELAY_TICKS"
              }
         },
