@@ -33,6 +33,7 @@ public: // CellularDevice
 
 public: // NetworkInterface
     void handle_urc(FileHandle *fh);
+    virtual nsapi_error_t init_module(FileHandle *fh);
 };
 } // namespace mbed
 #endif // QUECTEL_BG96_H_

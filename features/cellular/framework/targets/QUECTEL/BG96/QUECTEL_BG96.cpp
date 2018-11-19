@@ -19,6 +19,10 @@
 #include "QUECTEL/BG96/QUECTEL_BG96_CellularNetwork.h"
 #include "QUECTEL/BG96/QUECTEL_BG96_CellularStack.h"
 
+#include "CellularUtil.h"
+#include "UARTSerial.h"
+#include "CellularLog.h"
+
 using namespace mbed;
 using namespace events;
 
@@ -55,4 +59,51 @@ CellularNetwork *QUECTEL_BG96::open_network(FileHandle *fh)
         }
     }
     return _network;
+}
+
+nsapi_error_t QUECTEL_BG96::init_module(FileHandle *fh) {
+    ATHandler *atHandler = get_at_handler(fh);
+    if (atHandler) {
+        bool didAccessAt = false;
+        //enable flow control if required
+        #if defined (MDMRTS) && defined (MDMCTS)
+        if (!didAccessAt) atHandler->lock();
+        didAccessAt = true;
+
+        atHandler->cmd_start("AT+IFC=2,2");
+        atHandler->cmd_stop();
+        atHandler->resp_start();
+        atHandler->resp_stop();
+        if (atHandler->get_last_error() == NSAPI_ERROR_OK) {
+            tr_info("Cellular device - enabled flow control.");
+        } else {
+            tr_warn("Cellular device - failed to enable flow control.");
+        }
+        #endif
+
+        //set target baud rate
+        #if defined(MDM_TARGET_BAUD_RATE)
+        if (!didAccessAt) atHandler->lock();
+        didAccessAt = true;
+
+        atHandler->cmd_start("AT+IPR=" CELLULAR_STRINGIFY(MDM_TARGET_BAUD_RATE));
+        atHandler->cmd_stop();
+        atHandler->resp_start();
+        atHandler->resp_stop();
+        if (atHandler->get_last_error() == NSAPI_ERROR_OK) {
+            //update uart baud rate
+            ((UARTSerial*)atHandler->get_file_handle())->set_baud(MDM_TARGET_BAUD_RATE);
+
+            tr_info("Cellular device - set baud rate (" CELLULAR_STRINGIFY(MDM_TARGET_BAUD_RATE) ").");
+        } else {
+            tr_warn("Cellular device - failed to set baud rate (" CELLULAR_STRINGIFY(MDM_TARGET_BAUD_RATE) ").");
+        }
+        #endif
+
+        if (didAccessAt) {
+            return atHandler->unlock_return_error();
+        }
+    }
+
+    return NSAPI_ERROR_OK;
 }
